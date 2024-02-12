@@ -7,7 +7,7 @@ const { google } = require('googleapis');
 
 const app = express();
 app.use(express.json());
-const credentials = require('./linear-photon-355018-52d4742fd64d.json');
+const credentials = require('./google_key.json');
 // Initialize Google Drive API
 const auth = new google.auth.JWT(
   credentials.client_email,
@@ -97,7 +97,7 @@ app.post('/transfer', async (req, res) => {
 // Authentication function
 async function authenticate() {
   const auth = new google.auth.GoogleAuth({
-    keyFile: './linear-photon-355018-52d4742fd64d.json',
+    keyFile: './google_key.json',
     scopes: ['https://www.googleapis.com/auth/drive'],
   });
   return await auth.getClient();
@@ -164,7 +164,7 @@ async function checkUploadStatus(folderId) {
 // Authenticate with Google Drive API
 async function authenticate() {
   const auth = new google.auth.GoogleAuth({
-    keyFile: './linear-photon-355018-52d4742fd64d.json', // Path to your service account key file
+    keyFile: './google_key.json', // Path to your service account key file
     scopes: ['https://www.googleapis.com/auth/drive'],
   });
 
@@ -205,7 +205,7 @@ app.post('/api/create-folder', async (req, res) => {
     const { folderName, parentFolderId } = req.body;
 
     const auth = new google.auth.GoogleAuth({
-      keyFile: './linear-photon-355018-52d4742fd64d.json',
+      keyFile: './google_key.json',
       scopes: ['https://www.googleapis.com/auth/drive'],
     });
 
@@ -229,41 +229,6 @@ app.post('/api/create-folder', async (req, res) => {
   }
 });
 
-// async function createFolder(folderName, parentFolderId = null) {
-//   const auth = new google.auth.GoogleAuth({
-//     keyFile: './linear-photon-355018-52d4742fd64d.json',
-//     scopes: ['https://www.googleapis.com/auth/drive'],
-//   });
-
-//   const drive = google.drive({ version: 'v3', auth });
-
-//   const fileMetadata = {
-//     name: folderName,
-//     mimeType: 'application/vnd.google-apps.folder',
-//     parents: parentFolderId ? [parentFolderId] : [], // Optional: Set parent folder ID if the folder should be created inside another folder
-//   };
-
-//   try {
-//     const response = await drive.files.create({
-//       resource: fileMetadata,
-//       fields: 'id',
-//     });
-
-//     return response.data.id; // Return the ID of the created folder
-//   } catch (error) {
-//     console.error('Error creating folder:', error.message);
-//     throw error;
-//   }
-// }
-
-// // Example usage:
-// createFolder('My New Folder')
-//   .then(folderId => {
-//     console.log('Folder created with ID:', folderId);
-//   })
-//   .catch(error => {
-//     console.error('Error creating folder:', error);
-//   });
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
 
