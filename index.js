@@ -15,13 +15,14 @@ const auth = new google.auth.JWT(
   credentials.private_key,
   ['https://www.googleapis.com/auth/drive']
 );
+
 const drive = google.drive({ version: 'v3', auth });
 
 // Function to download file from Google Drive
-async function downloadFile(fileId, filePath) {
+async function downloadFile(fileId, filePath, mimeType) {
   const dest = fs.createWriteStream(filePath);
   try {
-    const res = await drive.files.export({ fileId, mimeType: 'application/pdf' }, { responseType: 'stream' });
+    const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'stream' });
     await new Promise((resolve, reject) => {
       res.data
         .on('end', () => {
@@ -41,14 +42,14 @@ async function downloadFile(fileId, filePath) {
 }
 
 // Function to upload file to Google Drive in chunks
-async function uploadFile(filePath, parentId) {
+async function uploadFile(filePath, parentId, mimeType) {
   const fileSize = fs.statSync(filePath).size;
   const fileMetadata = {
     name: 'uploaded_file', // You can change the name as required
     parents: [parentId],
   };
   const media = {
-    mimeType: 'application/octet-stream', // Change this MIME type as per your file type
+    mimeType,
     body: fs.createReadStream(filePath),
   };
   const res = await drive.files.create({
@@ -60,13 +61,6 @@ async function uploadFile(filePath, parentId) {
 }
 
 async function getFileMimeType(fileId) {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: './linear-photon-355018-52d4742fd64d.json',
-    scopes: ['https://www.googleapis.com/auth/drive'],
-  });
-
-  const drive = google.drive({ version: 'v3', auth });
-
   try {
     const response = await drive.files.get({
       fileId: fileId,
@@ -78,14 +72,21 @@ async function getFileMimeType(fileId) {
     throw error;
   }
 }
+
 // API endpoint to initiate download and upload
 app.post('/transfer', async (req, res) => {
   const { sourceFileId, destinationFolderId } = req.body;
   try {
     const mimeType = await getFileMimeType(sourceFileId);
     const timestamp = Date.now();
-       const downloadPath = `./downloaded_file_${timestamp}.${mimeType.split('/')[1]}`; // Dynamically determine file extension based on MIME type
-    await downloadFile(sourceFileId, downloadPath);
+    const downloadPath = `./downloaded_file_${timestamp}.${mimeType.split('/')[1]}`;
+    if (mimeType.startsWith('application/vnd.google-apps')) {
+      // It's a Google Docs file, export it
+      await downloadFile(sourceFileId, downloadPath, 'application/pdf'); // Export as PDF
+    } else {
+      // It's not a Google Docs file, download directly
+      await downloadFile(sourceFileId, downloadPath, mimeType);
+    }
     await uploadFile(downloadPath, destinationFolderId, mimeType);
     res.status(200).json({ message: 'Transfer completed successfully' });
   } catch (error) {
